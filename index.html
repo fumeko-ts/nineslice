@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>9-Slice Pixel Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --main-bg: #181820;
+      --panel-bg: #232334;
+      --accent: #a689ff;
+      --input-bg: #18181f;
+      --text: #ededf3;
+      --border: #444456;
+      --info: #4ad3ff;
+      --danger: #ff3a7d;
+      --radius: 12px;
+      --sidebar-width: 320px;
+      --main-width: 820px;
+      --max-app-width: 1200px;
+      --font-size: 16px;
+      --label-font-size: 14px;
+      --header-font-size: 20px;
+    }
+    html, body {
+      font-family: 'Press Start 2P', monospace;
+      background: var(--main-bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      font-size: var(--font-size);
+      overflow: hidden; /* Prevent vertical scrolling on desktop */
+    }
+    .appwrap {
+      display: flex;
+      flex-direction: row;
+      width: 100vw;
+      max-width: var(--max-app-width);
+      height: 100vh;
+      margin: 0 auto;
+      box-sizing: border-box;
+      /* Prevent scrolling */
+      overflow: hidden;
+    }
+    .sidebar {
+      background: var(--panel-bg);
+      border-right: 2px solid var(--border);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      box-shadow: 2px 0 10px #0005;
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      max-width: var(--sidebar-width);
+      padding: 32px 26px 32px 26px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      align-items: flex-start;
+      justify-content: flex-start;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .mainpanel {
+      width: var(--main-width);
+      min-width: 0;
+      flex: 1 1 0;
+      padding: 32px 36px 32px 36px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    header {
+      font-size: var(--header-font-size);
+      font-weight: bold;
+      color: var(--accent);
+      text-align: left;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+      letter-spacing: 1px;
+      width: 100%;
+    }
+    .hint {
+      font-size: 1rem;
+      color: var(--accent);
+      text-align: left;
+      opacity: 0.88;
+      margin-bottom: 2px;
+    }
+    form {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: stretch;
+      margin: 0;
+    }
+    label {
+      font-size: var(--label-font-size);
+      color: var(--accent);
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      letter-spacing: 0.2px;
+    }
+    input, select, button {
+      font-family: inherit;
+      font-size: var(--font-size);
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      padding: 12px 12px;
+      margin: 0;
+      width: 100%;
+      box-sizing: border-box;
+      transition: border 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+    input[type="file"] {
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: var(--font-size);
+    }
+    .actions {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .actions button {
+      width: 33%;
+      min-width: 100px;
+      padding: 12px 0;
+      background: var(--accent);
+      color: #18181f;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: var(--font-size);
+      cursor: pointer;
+    }
+    .actions button:active {
+      background: var(--info);
+      color: #18181f;
+    }
+    #canvas {
+      display: block;
+      border: 3px solid var(--accent);
+      border-radius: 10px;
+      background: var(--main-bg);
+      image-rendering: pixelated;
+      width: 100%;
+      max-width: 600px;
+      min-height: 350px;
+      height: auto;
+      box-sizing: border-box;
+      margin: 0 0 10px 0;
+      transition: border 0.2s;
+    }
+    .output {
+      background: var(--input-bg);
+      border-radius: 7px;
+      border: 2px solid var(--border);
+      color: var(--accent);
+      font-size: 1rem;
+      font-family: inherit;
+      margin: 0 0 12px 0;
+      padding: 13px 16px;
+      word-break: break-all;
+      width: 100%;
+      max-width: 600px;
+      box-sizing: border-box;
+      user-select: text;
+      text-align: left;
+    }
+    .hidden {
+      display: none !important;
+    }
+    /* Responsive fallback for mobile/tablet */
+    @media (max-width: 900px) {
+      html, body {
+        overflow: auto;
+      }
+      .appwrap {
+        flex-direction: column;
+        width: 100vw;
+        max-width: 100vw;
+        height: auto;
+        min-height: 100vh;
+      }
+      .sidebar, .mainpanel {
+        width: 100vw;
+        min-width: unset;
+        max-width: 100vw;
+        height: auto;
+        padding: 28px 4vw;
+        border-radius: var(--radius);
+      }
+      #canvas, .output { max-width: 98vw; }
+    }
+    @media (max-width: 500px) {
+      .sidebar, .mainpanel { padding: 16px 2vw; }
+      header { font-size: 17px;}
+      .hint, .output { font-size: 0.93rem;}
+      label { font-size: 13px;}
+      input, select, button { font-size: 15px; }
+      #canvas { min-height: 180px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="appwrap">
+    <div class="sidebar">
+      <header>9-Slice Pixel Viewer</header>
+      <div class="hint">
+        Upload a pixel image, set grid & slices, and preview 9-slice scaling.<br>
+        All controls always visible—no scrolling needed!
+      </div>
+      <form id="controls" autocomplete="off" onsubmit="return false;">
+        <label>
+          Image
+          <input type="file" id="fileInput" accept="image/*">
+        </label>
+        <label>
+          Zoom
+          <input type="number" id="zoom" value="20" min="1" max="64">
+        </label>
+        <label>
+          Base Size (WxH)
+          <input type="text" id="baseSize" value="12,15" size="7" placeholder="width,height">
+        </label>
+        <label>
+          9-Slice (L,T,R,B)
+          <input type="text" id="ninesliceSize" value="6,6,6,7" size="10" placeholder="left,top,right,bottom">
+        </label>
+        <label>
+          Output Size (WxH)
+          <input type="text" id="outputSize" value="" size="8" placeholder="optional">
+        </label>
+        <div class="actions">
+          <button id="drawBtn" type="button">Draw</button>
+          <button id="saveBtn" type="button">Save PNG</button>
+          <button id="copyDataBtn" type="button">Copy Data</button>
+        </div>
+      </form>
+    </div>
+    <div class="mainpanel">
+      <canvas id="canvas" width="480" height="350"></canvas>
+      <div id="output" class="output hidden"></div>
+    </div>
+  </div>
+  <script>
+    // --- UI Elements ---
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let img = null;
+
+    const outputDiv = document.getElementById('output');
+    const saveBtn = document.getElementById('saveBtn');
+    const copyBtn = document.getElementById('copyDataBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    // --- Image Upload ---
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        img = new Image();
+        img.onload = () => draw();
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // --- Drag & Drop ---
+    canvas.addEventListener('dragover', e => { e.preventDefault(); });
+    canvas.addEventListener('drop', e => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          img = new Image();
+          img.onload = () => draw();
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // --- Main Draw Function ---
+    document.getElementById('drawBtn').addEventListener('click', draw);
+
+    function draw() {
+      if (!img) return;
+      const zoom = parseInt(document.getElementById('zoom').value) || 1;
+      const baseSize = document.getElementById('baseSize').value.split(',').map(Number);
+      const nineslice = document.getElementById('ninesliceSize').value.split(',').map(Number);
+      let outputSize = document.getElementById('outputSize').value;
+      let outputW, outputH;
+      if (outputSize) {
+        [outputW, outputH] = outputSize.split(',').map(Number);
+      } else {
+        outputW = baseSize[0];
+        outputH = baseSize[1];
+      }
+      canvas.width = outputW * zoom;
+      canvas.height = outputH * zoom;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw pixel-perfect scaled image (with 9-slice scaling)
+      render9Slice(img, ctx, baseSize, nineslice, outputW, outputH, zoom);
+
+      // Draw slice guides
+      drawGuides(ctx, baseSize, nineslice, outputW, outputH, zoom);
+
+      // Show grid data
+      showGridData(baseSize, nineslice, outputW, outputH, zoom);
+    }
+
+    // --- 9-Slice Render ---
+    function render9Slice(img, ctx, baseSize, nineslice, ow, oh, zoom) {
+      const [bw, bh] = baseSize;
+      const [l, t, r, b] = nineslice;
+
+      const src = { x: [0, l, bw - r, bw], y: [0, t, bh - b, bh] };
+      const dst = { x: [0, l, ow - r, ow], y: [0, t, oh - b, oh] };
+
+      for (let sy = 0; sy < 3; sy++) {
+        for (let sx = 0; sx < 3; sx++) {
+          const sw = src.x[sx + 1] - src.x[sx];
+          const sh = src.y[sy + 1] - src.y[sy];
+          const dw = dst.x[sx + 1] - dst.x[sx];
+          const dh = dst.y[sy + 1] - dst.y[sy];
+          if (sw <= 0 || sh <= 0 || dw <= 0 || dh <= 0) continue;
+          ctx.drawImage(
+            img,
+            src.x[sx], src.y[sy], sw, sh,
+            dst.x[sx] * zoom, dst.y[sy] * zoom, dw * zoom, dh * zoom
+          );
+        }
+      }
+    }
+
+    // --- Draw Guides ---
+    function drawGuides(ctx, baseSize, nineslice, ow, oh, zoom) {
+      const [l, t, r, b] = nineslice;
+      const w = ow * zoom, h = oh * zoom;
+
+      ctx.save();
+      ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--danger');
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(l * zoom, t * zoom, w - (l + r) * zoom, h - (t + b) * zoom);
+      ctx.restore();
+
+      ctx.save();
+      ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--info');
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(l * zoom, 0); ctx.lineTo(l * zoom, h);
+      ctx.moveTo((ow - r) * zoom, 0); ctx.lineTo((ow - r) * zoom, h);
+      ctx.moveTo(0, t * zoom); ctx.lineTo(w, t * zoom);
+      ctx.moveTo(0, (oh - b) * zoom); ctx.lineTo(w, (oh - b) * zoom);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- Grid Data Output ---
+    function showGridData(baseSize, nineslice, ow, oh, zoom) {
+      let html = `<b>Source Size:</b> ${baseSize.join(', ')}<br>
+      <b>9-Slice:</b> left=${nineslice[0]}, top=${nineslice[1]}, right=${nineslice[2]}, bottom=${nineslice[3]}<br>
+      <b>Output Size:</b> ${ow}, ${oh}<br>
+      <b>Zoom:</b> ${zoom}`;
+      outputDiv.innerHTML = html;
+      outputDiv.classList.remove('hidden');
+    }
+
+    // --- Save PNG ---
+    saveBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'nineslice-view.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+
+    // --- Copy Data ---
+    copyBtn.addEventListener('click', () => {
+      let text = outputDiv.innerText;
+      navigator.clipboard.writeText(text);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy Data', 1200);
+    });
+
+    // --- Keyboard Shortcuts ---
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        saveBtn.click();
+      }
+      if (e.ctrlKey && e.key === 'c') {
+        e.preventDefault();
+        copyBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
